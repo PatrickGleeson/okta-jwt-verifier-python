@@ -7,7 +7,7 @@ from .constants import LEEWAY
 from .exceptions import JWTValidationException
 
 
-class JWTUtils:
+class JWTUtils(object):
     """Contains different utils and common methods for jwt verification."""
 
     @staticmethod
@@ -31,7 +31,7 @@ class JWTUtils:
         # Check if required claims are present, because library "jose" doesn't raise an exception
         for claim in claims_to_verify:
             if claim not in claims:
-                raise JWTValidationException(f'Required claim "{claim}" is not present.')
+                raise JWTValidationException('Required claim "%s" is not present.' % claim)
 
         # Overwrite defaults in python-jose library
         options = {'verify_aud': 'aud' in claims_to_verify,

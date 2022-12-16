@@ -21,7 +21,7 @@ def test_verify_expiration(mocker):
     signing_input = 'test_signing_input'
     signature = 'test_signature'
 
-    mock_parse_token = lambda token: (headers, claims, signing_input, signature)
+    mock_parse_token = staticmethod(lambda token: (headers, claims, signing_input, signature))
     mocker.patch('okta_jwt_verifier.jwt_utils.JWTUtils.parse_token', mock_parse_token)
 
     JWTUtils.verify_expiration('test_token')

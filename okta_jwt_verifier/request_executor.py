@@ -1,20 +1,21 @@
 """Module contains tools to perform http requests."""
 import time
 
-from acachecontrol import AsyncCacheControl
-from acachecontrol.cache import AsyncCache
+import cachecontrol
+import cachecontrol.cache
+import requests
 from retry.api import retry_call
 
 from .constants import MAX_RETRIES, MAX_REQUESTS, REQUEST_TIMEOUT
 
 
-class RequestExecutor:
+class RequestExecutor(object):
     """Wrapper around HTTP API requests."""
     def __init__(self,
                  max_retries=MAX_RETRIES,
                  max_requests=MAX_REQUESTS,
                  request_timeout=REQUEST_TIMEOUT,
-                 cache_controller=AsyncCache(),
+                 cache_controller=cachecontrol.cache.DictCache(),
                  proxy=None):
         self.cache = cache_controller
         self.max_retries = max_retries
@@ -23,14 +24,14 @@ class RequestExecutor:
         self.requests_count = 0
         self.proxy = proxy
 
-    async def fire_request(self, uri, **params):
+    def fire_request(self, uri, **params):
         """Perform http(s) request within AsyncCacheControl session.
 
         Return response in json-format.
         """
-        async with AsyncCacheControl(cache=self.cache) as cached_sess:
-            async with cached_sess.get(uri, **params) as resp:
-                resp_json = await resp.json()
+        cached_sess = cachecontrol.CacheControl(requests.session(), self.cache)
+        with cached_sess.get(uri, **params) as resp:
+            resp_json = resp.json()
         return resp_json
 
     def get(self, uri, **params):
@@ -55,4 +56,4 @@ class RequestExecutor:
 
     def clear_cache(self):
         """Remove all cached data from all adapters in cached session."""
-        self.cache.clear_cache()
+        self.cache.data.clear()

@@ -12,7 +12,7 @@ from .error_messages import (ERROR_MESSAGE_ORG_URL_MISSING,
 from .exceptions import JWTInvalidConfigException
 
 
-class ConfigValidator():
+class ConfigValidator(object):
 
     """Class designed for JWT Verifier config validation."""
 
@@ -63,9 +63,9 @@ class ConfigValidator():
     def _validate_number(self, number, variable_name):
         """Validates param which should be represented as integer and >= 0"""
         if not isinstance(number, int):
-            raise JWTInvalidConfigException(f'{variable_name} should be type of int.')
+            raise JWTInvalidConfigException('%s should be type of int.' % variable_name)
         if number < 0:
-            raise JWTInvalidConfigException(f'Value of {variable_name} should be 0 or greater.')
+            raise JWTInvalidConfigException('Value of %s should be 0 or greater.' % variable_name)
 
     def validate_numbers(self, numbers=('max_retries',
                                         'max_requests',

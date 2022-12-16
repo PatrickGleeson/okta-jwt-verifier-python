@@ -1,6 +1,6 @@
 import warnings
 
-from urllib.parse import urljoin
+from urlparse import urljoin
 
 from . import __version__ as version
 from .config_validator import ConfigValidator
@@ -10,7 +10,7 @@ from .jwt_utils import JWTUtils
 from .request_executor import RequestExecutor
 
 
-class BaseJWTVerifier():
+class BaseJWTVerifier(object):
 
     def __init__(self,
                  issuer=None,
@@ -67,7 +67,7 @@ class BaseJWTVerifier():
         """
         return JWTUtils.parse_token(token)
 
-    async def verify_access_token(self, token, claims_to_verify=('iss', 'aud', 'exp')):
+    def verify_access_token(self, token, claims_to_verify=('iss', 'aud', 'exp')):
         """Verify acess token.
 
         Algorithm:
@@ -93,14 +93,14 @@ class BaseJWTVerifier():
                                claims_to_verify=claims_to_verify,
                                leeway=self.leeway)
 
-            okta_jwk = await self.get_jwk(headers['kid'])
+            okta_jwk = self.get_jwk(headers['kid'])
             self.verify_signature(token, okta_jwk)
         except JWTValidationException:
             raise
         except Exception as err:
             raise JWTValidationException(str(err))
 
-    async def verify_id_token(self, token, claims_to_verify=('iss', 'exp'), nonce=None):
+    def verify_id_token(self, token, claims_to_verify=('iss', 'exp'), nonce=None):
         """Verify id token.
 
         Algorithm:
@@ -129,7 +129,7 @@ class BaseJWTVerifier():
                                claims_to_verify=claims_to_verify,
                                leeway=self.leeway)
 
-            okta_jwk = await self.get_jwk(headers['kid'])
+            okta_jwk = self.get_jwk(headers['kid'])
             self.verify_signature(token, okta_jwk)
 
             # verify client_id and nonce
@@ -182,7 +182,7 @@ class BaseJWTVerifier():
                 okta_jwk = key
         return okta_jwk
 
-    async def get_jwk(self, kid):
+    def get_jwk(self, kid):
         """Get JWK by kid.
 
         If key not found, clear cache and retry again to support keys rollover.
@@ -191,27 +191,27 @@ class BaseJWTVerifier():
             str - represents JWK
         Raise JWKException if key not found after retry.
         """
-        jwks = await self.get_jwks()
+        jwks = self.get_jwks()
         okta_jwk = self._get_jwk_by_kid(jwks, kid)
 
         if not okta_jwk:
             # retry logic
             self._clear_requests_cache()
-            jwks = await self.get_jwks()
+            jwks = self.get_jwks()
             okta_jwk = self._get_jwk_by_kid(jwks, kid)
         if not okta_jwk:
             raise JWKException('No matching JWK.')
         return okta_jwk
 
-    async def get_jwks(self):
+    def get_jwks(self):
         """Get jwks_uri from claims and download jwks.
 
         version from okta_jwt_verifier.__init__.py
         """
         jwks_uri = self._construct_jwks_uri()
-        headers = {'User-Agent': f'okta-jwt-verifier-python/{version}',
+        headers = {'User-Agent': 'okta-jwt-verifier-python/%s' % version,
                    'Content-Type': 'application/json'}
-        jwks = await self.request_executor.get(jwks_uri, headers=headers)
+        jwks = self.request_executor.get(jwks_uri, headers=headers)
         if not self.cache_jwks:
             self._clear_requests_cache()
         return jwks
@@ -266,7 +266,7 @@ class JWTVerifier(BaseJWTVerifier):
         warnings.warn('JWTVerifier will be deprecated soon. '
                       'For token verification use IDTokenVerifier or AccessTokenVerifier. '
                       'For different jwt utils use JWTUtils.', DeprecationWarning)
-        super().__init__(issuer=issuer,
+        super(JWTVerifier, self).__init__(issuer=issuer,
                          client_id=client_id,
                          audience=audience,
                          request_executor=request_executor,
@@ -278,7 +278,7 @@ class JWTVerifier(BaseJWTVerifier):
                          proxy=proxy)
 
 
-class AccessTokenVerifier():
+class AccessTokenVerifier(object):
     def __init__(self,
                  issuer=None,
                  audience='api://default',
@@ -311,11 +311,11 @@ class AccessTokenVerifier():
                                              cache_jwks=cache_jwks,
                                              proxy=proxy)
 
-    async def verify(self, token, claims_to_verify=('iss', 'aud', 'exp')):
-        await self._jwt_verifier.verify_access_token(token, claims_to_verify)
+    def verify(self, token, claims_to_verify=('iss', 'aud', 'exp')):
+        self._jwt_verifier.verify_access_token(token, claims_to_verify)
 
 
-class IDTokenVerifier():
+class IDTokenVerifier(object):
     def __init__(self,
                  issuer=None,
                  client_id='client_id_stub',
@@ -350,5 +350,5 @@ class IDTokenVerifier():
                                              cache_jwks,
                                              proxy)
 
-    async def verify(self, token, claims_to_verify=('iss', 'exp'), nonce=None):
-        await self._jwt_verifier.verify_id_token(token, claims_to_verify, nonce)
+    def verify(self, token, claims_to_verify=('iss', 'exp'), nonce=None):
+        self._jwt_verifier.verify_id_token(token, claims_to_verify, nonce)
